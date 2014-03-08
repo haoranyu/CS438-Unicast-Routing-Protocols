@@ -1,10 +1,10 @@
-all: manager distvec linkstt
+all: manager distvec linkstate
 
-manager: manager.c
-		gcc -w -o manager manager.c
-distvec: distvec.c
-		gcc -w -o distvec distvec.c
-linkstt: linkstt.c
-		gcc -w -o linkstt linkstt.c
+manager: manager.cpp
+		g++ -w -o manager manager.cpp
+distvec: distvec.cpp
+		g++ -w -o distvec distvec.cpp
+linkstate: linkstate.cpp
+		g++ -w -o linkstate linkstate.cpp
 clean:
-		rm manager distvec linkstt
+		rm manager distvec linkstate
