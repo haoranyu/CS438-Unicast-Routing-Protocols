@@ -6,11 +6,10 @@ toNode                     next;
 bool                       ready = false;
 bool                       converge = false;
 map<int, map<int, int> >   topo_table;
-map<int, int>              hop,
-                           dist,
+map<int, int>              dist,
                            pd;
 map<int, bool>             node;
-string                     table;
+string                     table = "";
 
 class cmp {
 public:
@@ -19,19 +18,17 @@ public:
    }
 };
 
-void  listening();
-void  set_ready();
-void  send_message(istringstream& infoin);
-void  update_link(istringstream& infoin);
-void  update_table(istringstream& infoin);
-int   gethop(int dest); 
-string print_table();
+void     listening();
+void     set_converge();
+void     connect_to(istringstream& infoin);
+void     update_table(istringstream& infoin);
+void     set_ready();
 
-bool  not_exist(int x, int y);
-bool  set(int x, int y, int cost);
-bool  equal(int x, int y, int cost);
-void  dijkstra() ;
-string dijkstra_helper(int temp2, int i);
+bool     not_exist(int x, int y);
+bool     link(int x, int y, int cost);
+bool     exam(int x, int y, int cost);
+void     dijkstra() ;
+string   dijkstra_helper(int temp, int i);
 
 void listening() {
    while (1) {
@@ -44,45 +41,26 @@ void listening() {
       istringstream recvin(recv_str);
       recvin>>status;
       switch(status){
-         case 200: set_ready(); break;
-         case 201: update_link(recvin); break;
+         case 202: set_converge(); break;
+         case 201: connect_to(recvin); break;
          case 205: update_table(recvin); break;
-         case 301: send_message(recvin); break;
+         case 301: send_message(recvin, id, next); break;
          default: break;
       }
    }
 }
 
+void set_converge(){
+   set_ready(); 
+}
+
 void set_ready() {
    ready = true;
    if(converge)
-      cout<<print_table();
+      cout<<print_table(table);
 }
 
-void send_message(istringstream& infoin) {
-   ostringstream printout, sendout;
-   int source, dest;
-   string temp,from;
-   infoin>>from>>source>>temp>>dest>>temp;
-   printout<<"from "<<source<<" to "<<dest<<" hops ";
-   while(1) {
-      infoin>>temp;
-      if(temp == "message")
-         break;
-      printout<<temp<<" ";
-   }
-   getline(infoin, temp);
-   printout<<id<<" message"<<temp;
-   cout<<printout.str()<<endl;
-   sendout<<"301 "<<printout.str();
-
-   if(gethop(dest) >= 0) {
-      sendto(sockfd, sendout.str().c_str(), sendout.str().size(), 0,
-         (struct sockaddr *)&(next[gethop(dest)].addr), sizeof(next[gethop(dest)].addr));
-   }
-}
-
-void update_link(istringstream& infoin) {
+void connect_to(istringstream& infoin) {
    int dest, cost, port;
    string ip;
 
@@ -130,7 +108,7 @@ void update_link(istringstream& infoin) {
          }
       }
 
-      set(id, dest, cost);
+      link(id, dest, cost);
       
       broadcast_list[dest] = cost;
    }
@@ -153,7 +131,7 @@ void update_table(istringstream& infoin) {
    int src, dest, cost;
    infoin>>src>>dest>>cost;
 
-   if(set(src,dest,cost)) {
+   if(link(src,dest,cost)) {
       for(toNode::iterator it = next.begin(); it !=next.end(); it++) {
          if((dest != it->first && src != it->first) && it->second.alive) {
             ostringstream infoout;
@@ -167,23 +145,10 @@ void update_table(istringstream& infoin) {
    }
 }
 
-int gethop(int dest) {
-   if(hop.find(dest) == hop.end())
-      return -1;
-   else
-      return hop[dest];
-}
-
-string print_table() {
-   ostringstream str;
-   str<<"\n"<<table<<"\n";
-   return str.str();
-}
-
-bool set(int x, int y, int cost) {
+bool link(int x, int y, int cost) {
    node[x] = node[y] = true;
 
-   if(equal(x,y,cost))
+   if(exam(x,y,cost))
       return false;
 
    converge = false;
@@ -198,7 +163,7 @@ bool set(int x, int y, int cost) {
    return true;
 }
 
-bool equal(int x, int y, int cost) {
+bool exam(int x, int y, int cost) {
    if(not_exist(x,y))
       return false;
    return ((x<y ? topo_table[x][y] : topo_table[y][x]) == cost);
@@ -254,7 +219,7 @@ void dijkstra() {
    if(table != infoout.str()) {
       table = infoout.str();
       if(ready) {
-         cout<<print_table();
+         cout<<print_table(table);
       }
    }
 }
@@ -271,4 +236,5 @@ string dijkstra_helper(int temp, int i) {
       infoout<<dijkstra_helper(temp,pd[i])<<" "<<i;
    return infoout.str();
 }
+
 #endif

@@ -4,9 +4,16 @@
 #define MAXBUFF 1024
 #define PORT 8080
 
-int sockfd;
-struct sockaddr_in hints;
-struct sockaddr_in their_addr;
+int               sockfd;
+struct            sockaddr_in hints;
+struct            sockaddr_in their_addr;
+map<int, int>     hop;
+
+int                  init_node_id() ;
+struct sockaddr_in   get_sock_addr(const char *ip, int port);
+int                  gethop(int dest);
+string               print_table(string t);
+void                 send_message(istringstream& infoin, int idx, toNode nextx);
 
 int init_node_id() {
    string status = "200";
@@ -26,5 +33,40 @@ struct sockaddr_in get_sock_addr(const char *ip, int port) {
    return addr;
 }
 
+int gethop(int dest) {
+   if(hop.find(dest) == hop.end())
+      return -1;
+   else
+      return hop[dest];
+}
+
+string print_table(string t) {
+   ostringstream str;
+   str<<"\n"<<t<<"\n";
+   return str.str();
+}
+
+void send_message(istringstream& infoin, int idx, toNode nextx) {
+   ostringstream infoout, inforedi;
+   int src, dest;
+   string temp, from;
+   infoin>>from>>src>>temp>>dest>>temp;
+   infoout << "from " << src << " to " << dest << " hops ";
+   while(1) {
+      infoin>>temp;
+      if(temp == "message")
+         break;
+      infoout<<temp<<" ";
+   }
+   getline(infoin, temp);
+   infoout<<idx<<" message"<<temp;
+   cout<<infoout.str()<< endl;
+
+   inforedi<<"301 "<<infoout.str();
+   if(idx != dest && gethop(dest) != -1) {
+      sendto(sockfd, inforedi.str().c_str(), inforedi.str().size(), 0,
+         (struct sockaddr *)&(nextx[gethop(dest)].addr), sizeof(nextx[gethop(dest)].addr));
+   }
+}
 
 #endif

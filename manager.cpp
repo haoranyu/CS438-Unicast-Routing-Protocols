@@ -38,7 +38,7 @@ int node_id = 0;
 int sockfd;
 
 void 	send_message();
-void 	recvMessage(string msg, sockaddr_in their_addr);
+void 	recv_message(string msg, sockaddr_in their_addr);
 void * 	slave(void* _args);
 int 	init_node_conn(int from_node, int aim_node, Node node, int max);
 Node 	init_node(int cost);
@@ -47,25 +47,27 @@ void 	update_node_next(sockaddr_in their_addr);
 void 	init_topology(char * filename);
 void 	init_msg(char* filename);
 void 	flood_new_node(int cost, sockaddr_in addr);
-void 	flood_flag(string s);
+void 	flood_msg(string s);
 
 void 	send_message() {
+	sleep(5);
 	for (vector<pair<int, string> >::iterator it = msg_queue.begin(); it != msg_queue.end(); ++it) {
 		char * msg = (char *)((it->second).c_str());
 		sockaddr_in addr = node_list[it->first-1].addr;
 		sendto(sockfd, msg, ((string)msg).size(), 0, (struct sockaddr *)&addr, sizeof(addr)); 
 	}
+	sleep(1);
 }
 
-void 	recvMessage(string status, sockaddr_in their_addr) {
-	if(status == "200" && node_id < maxnode) {
+void 	recv_message(string msg, sockaddr_in their_addr) {
+	if(msg == "200" && node_id<maxnode) {
 		node_id++;
 		stringstream buff;
 		buff<<node_id;
 
 		sendto(sockfd, buff.str().c_str(), buff.str().length(), 0,
 				(struct sockaddr *)&their_addr, sizeof(their_addr));
-		
+
 		node_list.push_back(update_node(their_addr));
 		update_node_next(their_addr);
 
@@ -88,14 +90,14 @@ void 	recvMessage(string status, sockaddr_in their_addr) {
 		cout << "YE" << endl;
 		if(node_id == maxnode) {
 			sleep(1);
-			flood_flag("200");
+			flood_msg("202");
 			send_message();
 		}
 	}
 }
 
 
-void * 	slave(void* null){
+void* 	slave(void* null){
     free(null);
     int node_a, node_b, cost;
     // hyu: enable adding topology 
@@ -228,8 +230,8 @@ void 	flood_new_node(int cost, sockaddr_in addr) {
 	sendto(sockfd, temp, ((string)temp).size(), 0,(struct sockaddr *)&addr, sizeof(addr)); 
 }
 
-void 	flood_flag(string str) {
-	for(int i = 0; i < node_list.size(); i++) {
+void 	flood_msg(string str) {
+	for(size_t i = 0; i < node_list.size(); i++) {
 		sendto(sockfd, str.c_str(), str.size(), 0,(struct sockaddr *)&(node_list[i].addr),sizeof(node_list[i].addr)); 
 	}
 }
@@ -280,6 +282,6 @@ int main(int argc, char**argv) {
 		else {
 			status[status_len] = '\0';
 		}
-		recvMessage((string)status, their_addr);
+		recv_message((string)status, their_addr);
 	}
 }
